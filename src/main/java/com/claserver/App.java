@@ -3,6 +3,7 @@ package com.claserver;
 import com.claserver.db.DatabaseInitializer;
 import com.claserver.netty.HttpServer;
 import com.claserver.netty.HttpsServer;
+import com.claserver.tasks.HeartbeatChecker;
 
 public class App {
 
@@ -10,6 +11,7 @@ public class App {
 
         // Khởi tạo database
         DatabaseInitializer.init();
+        new Thread(new com.claserver.tasks.HeartbeatChecker(), "heartbeat-checker").start();
 
         // Chạy HTTP server port 8080 trên thread riêng
         new Thread(() -> {
@@ -28,5 +30,6 @@ public class App {
                 e.printStackTrace();
             }
         }).start();
+
     }
 }
