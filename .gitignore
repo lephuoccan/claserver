@@ -1,0 +1,34 @@
+# Maven target folder
+/target/
+
+# Logs
+*.log
+
+# Eclipse / IntelliJ IDEA / VSCode
+/.idea/
+/*.iml
+/.vscode/
+/*.ipr
+/*.iws
+
+# Mac OS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Keystore / Sensitive files
+*.p12
+*.jks
+
+# Maven dependency folder (optional, usually managed by Maven)
+/.m2/
+
+# Temporary files
+*.tmp
+*.bak
+
+# Build scripts output
+/out/
