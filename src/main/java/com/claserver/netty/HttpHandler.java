@@ -1,29 +1,32 @@
 package com.claserver.netty;
 
 import com.claserver.services.UserService;
+import com.claserver.utils.InstantAdapter;
+import com.claserver.services.DashboardService;
+import com.claserver.services.DeviceService;
 import com.claserver.services.PinService;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+
+import com.google.gson.*;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
-import com.claserver.utils.InstantAdapter; 
-
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
 import java.time.Instant;
+
+import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
 public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private final UserService userService = new UserService();
+    private final DashboardService dashboardService = new DashboardService();
+    private final DeviceService deviceService = new DeviceService();
     private final PinService pinService = new PinService();
+
     private final Gson gson = new GsonBuilder()
-                .registerTypeAdapter(Instant.class, new InstantAdapter())
-                .create();
+        .registerTypeAdapter(Instant.class, new InstantAdapter())
+        .create();
+
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) {
@@ -34,96 +37,99 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
         try {
             String body = req.content().toString(CharsetUtil.UTF_8);
+            JsonObject json = body.isEmpty() ? new JsonObject() : JsonParser.parseString(body).getAsJsonObject();
 
             switch (uri) {
+
+                // -------------------- USER REGISTER --------------------
                 case "/api/register":
-                    if (method.equals("POST")) {
-                        JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+                    if (!method.equals("POST")) { response = error("Method Not Allowed"); break; }
 
-                        // --- Bắt đầu kiểm tra an toàn JSON ---
-                        JsonElement userElement = obj.get("username");
-                        JsonElement emailElement = obj.get("email");
-                        JsonElement passElement = obj.get("password");
-
-                        if (userElement == null || userElement.isJsonNull() ||
-                            emailElement == null || emailElement.isJsonNull() ||
-                            passElement == null || passElement.isJsonNull()) {
-                            
-                            response = errorJson("Missing 'username', 'email', or 'password' in request body.");
-                            
-                        } else {
-                            // Nếu các trường tồn tại, lấy giá trị và tiến hành đăng ký
-                            String username = userElement.getAsString();
-                            String email = emailElement.getAsString();
-                            String password = passElement.getAsString();
-                            
-                            // service.register trả về đối tượng User.
-                            // Đảm bảo đối tượng GSON dùng ở đây đã đăng ký TypeAdapter cho Instant (như đã hướng dẫn)
-                            response = gson.toJson(userService.register(username, email, password));
-                        }
-                        // --- Kết thúc kiểm tra an toàn JSON ---
-
-                    } else {
-                        response = errorJson("Method Not Allowed");
-                    }
+                    response = gson.toJson(
+                        userService.register(
+                            json.get("username").getAsString(),
+                            json.get("email").getAsString(),
+                            json.get("password").getAsString()
+                        )
+                    );
                     break;
+
+                // -------------------- USER LOGIN --------------------
                 case "/api/login":
-                    if (method.equals("POST")) {
-                        JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+                    if (!method.equals("POST")) { response = error("Method Not Allowed"); break; }
 
-                        // --- Bắt đầu kiểm tra an toàn JSON ---
-                        JsonElement loginIdElement = obj.get("loginId");
-                        JsonElement passElement = obj.get("password");
-
-                        if (loginIdElement == null || loginIdElement.isJsonNull() ||
-                            passElement == null || passElement.isJsonNull()) {
-                            
-                            response = errorJson("Missing 'username', 'email', or 'password' in request body.");
-                        }
-                        else {
-                            // Nếu các trường tồn tại, lấy giá trị và tiến hành đăng ký
-                            String loginId = loginIdElement.getAsString();
-                            String password = passElement.getAsString();
-                            
-                            // service.register trả về đối tượng User.
-                            // Đảm bảo đối tượng GSON dùng ở đây đã đăng ký TypeAdapter cho Instant (như đã hướng dẫn)
-                            response = gson.toJson(userService.login(loginId, password));
-                        }
-                        // --- Kết thúc kiểm tra an toàn JSON ---
-
-                    } else {
-                        response = errorJson("Method Not Allowed");
-                    }
+                    response = gson.toJson(
+                        userService.login(
+                            json.get("loginId").getAsString(),
+                            json.get("password").getAsString()
+                        )
+                    );
                     break;
 
+                // -------------------- DASHBOARD CREATE --------------------
+                case "/api/dashboard/create":
+                    if (!method.equals("POST")) { response = error("Method Not Allowed"); break; }
+
+                    response = gson.toJson(
+                        dashboardService.createDashboard(
+                            json.get("user_id").getAsInt(),
+                            json.get("name").getAsString()
+                        )
+                    );
+                    break;
+
+                // -------------------- DEVICE CREATE --------------------
+                case "/api/device/create":
+                    if (!method.equals("POST")) { response = error("Method Not Allowed"); break; }
+
+                    response = gson.toJson(
+                        deviceService.createDevice(
+                            json.get("dashboard_id").getAsInt(),
+                            json.get("name").getAsString()
+                        )
+                    );
+                    break;
+
+                // -------------------- DEVICE HEARTBEAT --------------------
+                case "/api/device/heartbeat":
+                    if (!method.equals("POST")) { response = error("Method Not Allowed"); break; }
+
+                    response = gson.toJson(
+                        deviceService.heartbeat(
+                            json.get("token").getAsString()
+                        )
+                    );
+                    break;
+
+                // -------------------- PIN WRITE --------------------
                 case "/api/pin/write":
-                    if (method.equals("POST")) {
-                        JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
-                        String token = obj.get("token").getAsString();
-                        int pin = obj.get("pin").getAsInt();
-                        String value = obj.get("value").getAsString();
-                        response = pinService.writePin(token, pin, value);
-                    } else response = errorJson("Method Not Allowed");
+                    if (!method.equals("POST")) { response = error("Method Not Allowed"); break; }
+
+                    response = pinService.writePin(
+                        json.get("token").getAsString(),
+                        json.get("pin").getAsInt(),
+                        json.get("value").getAsString()
+                    );
                     break;
 
+                // -------------------- PIN READ --------------------
                 case "/api/pin/read":
-                    if (method.equals("POST")) {
-                        JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
-                        String token = obj.get("token").getAsString();
-                        int pin = obj.get("pin").getAsInt();
-                        response = pinService.readPin(token, pin);
-                    } else response = errorJson("Method Not Allowed");
+                    if (!method.equals("POST")) { response = error("Method Not Allowed"); break; }
+
+                    response = pinService.readPin(
+                        json.get("token").getAsString(),
+                        json.get("pin").getAsInt()
+                    );
                     break;
 
                 default:
-                    response = errorJson("Not Found");
+                    response = error("Not Found");
             }
 
         } catch (Exception e) {
-            response = errorJson(e.getMessage());
+            response = error(e.getMessage());
         }
 
-        // Build FullHttpResponse
         FullHttpResponse res = new DefaultFullHttpResponse(
                 HttpVersion.HTTP_1_1,
                 OK,
@@ -133,11 +139,10 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         res.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
         res.headers().set(HttpHeaderNames.CONTENT_LENGTH, res.content().readableBytes());
 
-        // Flush response and close connection
         ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
     }
 
-    private String errorJson(String msg) {
+    private String error(String msg) {
         JsonObject r = new JsonObject();
         r.addProperty("error", msg);
         return gson.toJson(r);

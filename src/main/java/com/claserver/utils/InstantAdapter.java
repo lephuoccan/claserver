@@ -1,19 +1,19 @@
-package com.claserver.utils; // <-- Package mới
+package com.claserver.utils;
 
-import com.google.gson.TypeAdapter;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
-import java.io.IOException;
+import com.google.gson.*;
+import java.lang.reflect.Type;
 import java.time.Instant;
 
-public class InstantAdapter extends TypeAdapter<Instant> {
-    // ... nội dung lớp Adapter như đã hướng dẫn ...
+public class InstantAdapter implements JsonSerializer<Instant>, JsonDeserializer<Instant> {
+
     @Override
-    public void write(JsonWriter out, Instant value) throws IOException {
-        if (value == null) out.nullValue(); else out.value(value.toString()); 
+    public JsonElement serialize(Instant src, Type typeOfSrc, JsonSerializationContext context) {
+        return new JsonPrimitive(src.toString()); // ISO format
     }
+
     @Override
-    public Instant read(JsonReader in) throws IOException {
-        if (in.peek() == com.google.gson.stream.JsonToken.NULL) { in.nextNull(); return null; } else { return Instant.parse(in.nextString()); }
+    public Instant deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+            throws JsonParseException {
+        return Instant.parse(json.getAsString());
     }
 }

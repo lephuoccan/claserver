@@ -2,6 +2,7 @@ package com.claserver.db;
 
 import com.claserver.models.Device;
 import java.sql.*;
+import java.time.Instant;
 import java.util.UUID;
 
 public class DeviceDAO {
@@ -9,7 +10,7 @@ public class DeviceDAO {
     public Device createDevice(int dashboardId, String name) throws Exception {
         String sql = "INSERT INTO devices(dashboard_id, name, token, last_heartbeat, created_at) VALUES (?, ?, ?, ?, ?)";
         String token = UUID.randomUUID().toString().replace("-", "");
-        long now = System.currentTimeMillis();
+        Instant now = Instant.now();
 
         try (Connection conn = PostgreSQL.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -17,8 +18,8 @@ public class DeviceDAO {
             ps.setInt(1, dashboardId);
             ps.setString(2, name);
             ps.setString(3, token);
-            ps.setLong(4, now); // initial heartbeat
-            ps.setLong(5, now);
+            ps.setTimestamp(4, Timestamp.from(now)); // initial heartbeat
+            ps.setTimestamp(5, Timestamp.from(now));
             ps.executeUpdate();
 
             ResultSet rs = ps.getGeneratedKeys();

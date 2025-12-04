@@ -28,7 +28,7 @@ public class DatabaseInitializer {
                     "user_id INT NOT NULL," +
                     "name VARCHAR(255) NOT NULL," +
                     "shared_token VARCHAR(255) UNIQUE NOT NULL," +
-                    "created_at TIMESTAMP DEFAULT NOW()," +
+                    "created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP," +
                     " FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE" +
                     ");";
 
@@ -41,8 +41,8 @@ public class DatabaseInitializer {
                     "dashboard_id INT NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE," +
                     "name VARCHAR(255)," +
                     "token VARCHAR(255) UNIQUE NOT NULL," +
-                    "last_heartbeat TIMESTAMP," +
-                    "created_at TIMESTAMP NOT NULL" +
+                    "last_heartbeat TIMESTAMPTZ," +
+                    "created_at TIMESTAMPTZ NOT NULL" +
                     ");";
 
 

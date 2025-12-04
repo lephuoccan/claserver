@@ -2,6 +2,7 @@ package com.claserver.db;
 
 import com.claserver.models.Dashboard;
 import java.sql.*;
+import java.time.Instant;
 import java.util.UUID;
 
 public class DashboardDAO {
@@ -9,15 +10,14 @@ public class DashboardDAO {
     public Dashboard createDashboard(int userId, String name) throws Exception {
         String sql = "INSERT INTO dashboards(user_id, name, shared_token, created_at) VALUES (?, ?, ?, ?)";
         String sharedToken = UUID.randomUUID().toString().replace("-", "");
-        long now = System.currentTimeMillis();
-
+        Instant now = Instant.now(); 
         try (Connection conn = PostgreSQL.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, userId);
             ps.setString(2, name);
             ps.setString(3, sharedToken);
-            ps.setLong(4, now);
+            ps.setTimestamp(4, Timestamp.from(now));
             ps.executeUpdate();
 
             ResultSet rs = ps.getGeneratedKeys();
@@ -36,9 +36,12 @@ public class DashboardDAO {
 
             ps.setString(1, sharedToken);
             ResultSet rs = ps.executeQuery();
+            // created_at có thể NULL, nên kiểm tra null trước
+            Timestamp created_atSql = rs.getTimestamp("created_at");
+            Instant created_at = (created_atSql != null) ? created_atSql.toInstant() : null;
             if (rs.next()) {
                 return new Dashboard(rs.getInt("id"), rs.getInt("user_id"), rs.getString("name"),
-                        rs.getString("shared_token"), rs.getLong("created_at"));
+                        rs.getString("shared_token"), created_at);
             }
             return null;
         }
