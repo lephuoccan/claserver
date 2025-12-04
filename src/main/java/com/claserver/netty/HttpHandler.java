@@ -2,75 +2,102 @@ package com.claserver.netty;
 
 import com.claserver.services.UserService;
 import com.claserver.services.PinService;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import io.netty.util.CharsetUtil;
+
+import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
 public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private final UserService userService = new UserService();
     private final PinService pinService = new PinService();
+    private final Gson gson = new Gson();
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) {
 
         String uri = req.uri();
         String method = req.method().name();
-        String body = req.content().toString(CharsetUtil.UTF_8);
-        String response = "";
+        String response;
 
         try {
-            if (uri.equals("/api/register") && method.equals("POST")) {
-                JsonObject json = JsonParser.parseString(body).getAsJsonObject();
-                response = userService.register(
-                        json.get("username").getAsString(),
-                        json.get("email").getAsString(),
-                        json.get("password").getAsString()
-                );
+            String body = req.content().toString(CharsetUtil.UTF_8);
 
-            } else if (uri.equals("/api/login") && method.equals("POST")) {
-                JsonObject json = JsonParser.parseString(body).getAsJsonObject();
-                response = userService.login(
-                        json.get("loginId").getAsString(),
-                        json.get("password").getAsString()
-                );
+            switch (uri) {
+                case "/api/register":
+                    if (method.equals("POST")) {
+                        JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+                        String username = obj.get("username").getAsString();
+                        String email = obj.get("email").getAsString();
+                        String password = obj.get("password").getAsString();
+                        response = gson.toJson(userService.register(username, email, password));
+                    } else response = errorJson("Method Not Allowed");
+                    break;
 
-            } else if (uri.equals("/api/pin/write") && method.equals("POST")) {
-                JsonObject json = JsonParser.parseString(body).getAsJsonObject();
-                response = pinService.writePin(
-                        json.get("token").getAsString(),
-                        json.get("pin").getAsInt(),
-                        json.get("value").getAsString()
-                );
+                case "/api/login":
+                    if (method.equals("POST")) {
+                        JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+                        String loginId = obj.get("loginId").getAsString();
+                        String password = obj.get("password").getAsString();
+                        response = gson.toJson(userService.login(loginId, password));
+                    } else response = errorJson("Method Not Allowed");
+                    break;
 
-            } else if (uri.equals("/api/pin/read") && method.equals("POST")) {
-                JsonObject json = JsonParser.parseString(body).getAsJsonObject();
-                response = pinService.readPin(
-                        json.get("token").getAsString(),
-                        json.get("pin").getAsInt()
-                );
+                case "/api/pin/write":
+                    if (method.equals("POST")) {
+                        JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+                        String token = obj.get("token").getAsString();
+                        int pin = obj.get("pin").getAsInt();
+                        String value = obj.get("value").getAsString();
+                        response = pinService.writePin(token, pin, value);
+                    } else response = errorJson("Method Not Allowed");
+                    break;
 
-            } else {
-                JsonObject r = new JsonObject();
-                r.addProperty("status", "error");
-                r.addProperty("msg", "Not Found");
-                response = r.toString();
+                case "/api/pin/read":
+                    if (method.equals("POST")) {
+                        JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+                        String token = obj.get("token").getAsString();
+                        int pin = obj.get("pin").getAsInt();
+                        response = pinService.readPin(token, pin);
+                    } else response = errorJson("Method Not Allowed");
+                    break;
+
+                default:
+                    response = errorJson("Not Found");
             }
 
-        } catch (Exception ex) {
-            JsonObject r = new JsonObject();
-            r.addProperty("status", "error");
-            r.addProperty("msg", ex.getMessage());
-            response = r.toString();
+        } catch (Exception e) {
+            response = errorJson(e.getMessage());
         }
 
-        FullHttpResponse res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, OK,
-                Unpooled.copiedBuffer(response, CharsetUtil.UTF_8));
+        // Build FullHttpResponse
+        FullHttpResponse res = new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1,
+                OK,
+                Unpooled.copiedBuffer(response, CharsetUtil.UTF_8)
+        );
+
         res.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
-        ctx.writeAndFlush(res);
+        res.headers().set(HttpHeaderNames.CONTENT_LENGTH, res.content().readableBytes());
+
+        // Flush response and close connection
+        ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
+    }
+
+    private String errorJson(String msg) {
+        JsonObject r = new JsonObject();
+        r.addProperty("error", msg);
+        return gson.toJson(r);
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        cause.printStackTrace();
+        ctx.close();
     }
 }

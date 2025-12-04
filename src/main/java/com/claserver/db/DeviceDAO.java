@@ -42,14 +42,25 @@ public class DeviceDAO {
         }
     }
 
-    public void heartbeat(String token) throws Exception {
-        String sql = "UPDATE devices SET last_heartbeat=? WHERE token=?";
+    // gọi mỗi 10 giây từ một scheduler để check heartbeat
+    public void checkHeartbeat() throws Exception {
+        String sql = "UPDATE devices " +
+                     "SET status='offline' " +
+                     "WHERE last_heartbeat < NOW() - INTERVAL '15 seconds'";
         try (Connection conn = PostgreSQL.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setLong(1, System.currentTimeMillis());
-            ps.setString(2, token);
             ps.executeUpdate();
         }
     }
+    
+    public boolean heartbeat(String token) throws Exception {
+        String sql = "UPDATE devices SET last_heartbeat = CURRENT_TIMESTAMP WHERE token=?";
+        try (Connection conn = PostgreSQL.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, token);
+            int affected = ps.executeUpdate();
+            return affected > 0; // true nếu token tồn tại và update thành công
+        }
+    }
+
 }

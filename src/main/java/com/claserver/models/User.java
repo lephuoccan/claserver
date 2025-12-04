@@ -25,6 +25,7 @@ public class User {
     public int getId() { return id; }
     public String getUsername() { return username; }
     public String getEmail() { return email; }
+    public String getPaswordHash() { return passwordHash;}
     public String getSharedToken() { return sharedToken; }
     public long getCreatedAt() { return createdAt; }
     public long getLastLogin() { return lastLogin; }

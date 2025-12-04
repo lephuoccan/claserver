@@ -13,8 +13,9 @@ public class DatabaseInitializer {
                     "id SERIAL PRIMARY KEY," +  // ID tự tăng khi có dòng mới thêm vào
                     "username VARCHAR(50) UNIQUE NOT NULL," + // thêm username
                     "email VARCHAR(255) UNIQUE NOT NULL," + // thêm email
-                    "password VARCHAR(255) NOT NULL" +  // thêm password
-                    "created_at TIMESTAMP DEFAULT NOW()," +
+                    "password_hash VARCHAR(255) NOT NULL," +  // thêm password
+                    "shared_token VARCHAR(64) UNIQUE NOT NULL," +
+                    "created_at TIMESTAMP," +
                     "last_login TIMESTAMP" +
                     ");";
 
@@ -24,10 +25,11 @@ public class DatabaseInitializer {
             // Tạo bảng dashboards nếu chưa tồn tại
             String dashboardsTable = "CREATE TABLE IF NOT EXISTS dashboards (" +
                     "id SERIAL PRIMARY KEY," +
-                    "user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE," +
+                    "user_id INT NOT NULL," +
                     "name VARCHAR(255) NOT NULL," +
                     "shared_token VARCHAR(255) UNIQUE NOT NULL," +
-                    "created_at TIMESTAMP DEFAULT NOW()" +
+                    "created_at TIMESTAMP DEFAULT NOW()," +
+                    " FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE" +
                     ");";
 
 
@@ -40,7 +42,7 @@ public class DatabaseInitializer {
                     "name VARCHAR(255)," +
                     "token VARCHAR(255) UNIQUE NOT NULL," +
                     "last_heartbeat TIMESTAMP," +
-                    "online BOOLEAN DEFAULT FALSE" +
+                    "created_at TIMESTAMP NOT NULL" +
                     ");";
 
 
@@ -51,7 +53,7 @@ public class DatabaseInitializer {
                     "id SERIAL PRIMARY KEY," +
                     "device_id INT NOT NULL REFERENCES devices(id) ON DELETE CASCADE," +
                     "pin INT NOT NULL," +
-                    "value TEXT" +
+                    "value TEXT," +
                     "UNIQUE(device_id, pin)" +
                     ");";
 

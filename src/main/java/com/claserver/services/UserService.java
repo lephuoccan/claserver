@@ -16,15 +16,13 @@ public class UserService {
     }
 
     public User register(String username, String email, String password) throws Exception {
-        if (userDAO.exists(username, email)) {
-            throw new Exception("Username or email already exists");
-        }
-        String hashed = hashPassword(password);
-        return userDAO.createUser(username, email, hashed);
+        if (userDAO.exists(username, email)) throw new Exception("Username/email already exists");
+        String hash = hashPassword(password);
+        return userDAO.createUser(username, email, hash);
     }
 
     public User login(String loginId, String password) throws Exception {
-        String hashed = hashPassword(password);
-        return userDAO.login(loginId, hashed);
+        String hash = hashPassword(password);
+        return userDAO.login(loginId, hash);
     }
 }

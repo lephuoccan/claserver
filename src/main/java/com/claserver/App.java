@@ -11,7 +11,7 @@ public class App {
 
         // Khởi tạo database
         DatabaseInitializer.init();
-        new Thread(new com.claserver.tasks.HeartbeatChecker(), "heartbeat-checker").start();
+        // new Thread(new com.claserver.tasks.HeartbeatChecker(), "heartbeat-checker").start();
 
         // Chạy HTTP server port 8080 trên thread riêng
         new Thread(() -> {
