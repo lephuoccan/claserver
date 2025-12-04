@@ -2,6 +2,8 @@ package com.claserver.db;
 
 import com.claserver.models.User;
 import java.sql.*;
+import java.time.Instant;
+import java.util.Objects;
 
 public class UserDAO {
 
@@ -19,9 +21,10 @@ public class UserDAO {
 
     public User createUser(String username, String email, String passwordHash) throws Exception {
         String sharedToken = java.util.UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
-
-        String sql = "INSERT INTO users(username, email, password_hash, shared_token, created_at, last_login) VALUES (?,?,?,?,to_timestamp(? / 1000.0),to_timestamp(? / 1000.0))";
+        // long now = System.currentTimeMillis();
+        // Lấy thời điểm hiện tại (UTC)
+        Instant now = Instant.now(); 
+        String sql = "INSERT INTO users(username, email, password_hash, shared_token, last_login) VALUES (?,?,?,?,?)";
 
         try (Connection conn = PostgreSQL.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -29,8 +32,7 @@ public class UserDAO {
             stmt.setString(2, email);
             stmt.setString(3, passwordHash);
             stmt.setString(4, sharedToken);
-            stmt.setLong(5, now);
-            stmt.setLong(6, now);
+            stmt.setTimestamp(5, Timestamp.from(now)); //--- Last login = now
             stmt.executeUpdate();
 
             ResultSet rs = stmt.getGeneratedKeys();
@@ -43,6 +45,7 @@ public class UserDAO {
     }
 
     public User login(String loginId, String passwordHash) throws Exception {
+        Instant now = Instant.now();
         String sql = "SELECT * FROM users WHERE (username=? OR email=?) AND password_hash=?";
         try (Connection conn = PostgreSQL.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -57,17 +60,23 @@ public class UserDAO {
             String username = rs.getString("username");
             String email = rs.getString("email");
             String sharedToken = rs.getString("shared_token");
-            long createdAt = rs.getLong("created_at");
-            long lastLogin = rs.getLong("last_login");
 
+            // Sử dụng getTimestamp() và toInstant() để tương thích với mọi driver
+            Instant createdAt = Objects.requireNonNull(rs.getTimestamp("created_at")).toInstant();
+            
+            // last_login có thể NULL, nên kiểm tra null trước
+            Timestamp lastLoginSql = rs.getTimestamp("last_login");
+            Instant lastLogin = (lastLoginSql != null) ? lastLoginSql.toInstant() : null;
+            
             // Update last login
             try (PreparedStatement u = conn.prepareStatement("UPDATE users SET last_login=? WHERE id=?")) {
-                u.setLong(1, System.currentTimeMillis());
+                lastLogin = now;
+                u.setTimestamp(1, Timestamp.from(lastLogin));
                 u.setInt(2, id);
                 u.executeUpdate();
             }
 
-            return new User(id, username, email, passwordHash, sharedToken, createdAt, System.currentTimeMillis());
+            return new User(id, username, email, passwordHash, sharedToken, createdAt, lastLogin);
         }
     }
 }

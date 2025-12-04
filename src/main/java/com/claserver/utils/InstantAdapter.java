@@ -1,0 +1,19 @@
+package com.claserver.utils; // <-- Package mới
+
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
+import java.time.Instant;
+
+public class InstantAdapter extends TypeAdapter<Instant> {
+    // ... nội dung lớp Adapter như đã hướng dẫn ...
+    @Override
+    public void write(JsonWriter out, Instant value) throws IOException {
+        if (value == null) out.nullValue(); else out.value(value.toString()); 
+    }
+    @Override
+    public Instant read(JsonReader in) throws IOException {
+        if (in.peek() == com.google.gson.stream.JsonToken.NULL) { in.nextNull(); return null; } else { return Instant.parse(in.nextString()); }
+    }
+}

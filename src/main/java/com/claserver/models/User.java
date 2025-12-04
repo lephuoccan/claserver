@@ -1,6 +1,7 @@
 package com.claserver.models;
 
 import com.google.gson.Gson;
+import java.time.Instant; // <--- Import lớp Instant
 
 public class User {
     private int id;
@@ -8,10 +9,10 @@ public class User {
     private String email;
     private String passwordHash;
     private String sharedToken;
-    private long createdAt;
-    private long lastLogin;
+    private Instant createdAt;
+    private Instant lastLogin;
 
-    public User(int id, String username, String email, String passwordHash, String sharedToken, long createdAt, long lastLogin) {
+    public User(int id, String username, String email, String passwordHash, String sharedToken, Instant createdAt, Instant lastLogin) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -27,8 +28,8 @@ public class User {
     public String getEmail() { return email; }
     public String getPaswordHash() { return passwordHash;}
     public String getSharedToken() { return sharedToken; }
-    public long getCreatedAt() { return createdAt; }
-    public long getLastLogin() { return lastLogin; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getLastLogin() { return lastLogin; }
 
     // Convert user sang JSON
     public String toJson() {

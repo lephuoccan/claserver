@@ -15,8 +15,8 @@ public class DatabaseInitializer {
                     "email VARCHAR(255) UNIQUE NOT NULL," + // thêm email
                     "password_hash VARCHAR(255) NOT NULL," +  // thêm password
                     "shared_token VARCHAR(64) UNIQUE NOT NULL," +
-                    "created_at TIMESTAMP," +
-                    "last_login TIMESTAMP" +
+                    "created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP," +
+                    "last_login TIMESTAMPTZ" +
                     ");";
 
 
